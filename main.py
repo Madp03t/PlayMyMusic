@@ -1,6 +1,7 @@
 import sys
 import os
 import locale
+import random
 locale.setlocale(locale.LC_ALL, "C")
 import mpv
 from PySide6.QtWidgets import (
@@ -92,22 +93,64 @@ player = mpv.MPV()
 
 
 progress_bar = QSlider(Qt.Horizontal)
+progress_bar.setStyleSheet("""
+    QSlider::groove:horizontal {
+        height: 8px;
+        background: #444;
+        border-radius: 4px;
+    }
+
+    QSlider::sub-page:horizontal {
+        background: palette(highlight);
+        border-radius: 4px;
+    }
+
+    QSlider::add-page:horizontal {
+        background: #444;
+        border-radius: 4px;
+    }
+
+    QSlider::handle:horizontal {
+        background: #ddd;
+        width: 18px;
+        margin: -6px 0;
+        border-radius: 9px;
+    }
+""")
 progress_bar.setRange(0, 100)
 progress_bar.setValue(0)
 
 prev_button = QPushButton("⏮")
 play_button = QPushButton("▶")
 next_button = QPushButton("⏭")
-shuffle_button = QPushButton("Shuffle")
+shuffle_button = QPushButton("⤮")
+
+button_style = """
+    QPushButton {
+        background-color: transparent;
+        border: none;
+        font-size: 24px;
+        padding: 8px;
+    }
+
+    QPushButton:hover {
+        color: palette(highlight);
+    }
+"""
+
+prev_button.setStyleSheet(button_style)
+play_button.setStyleSheet(button_style)
+next_button.setStyleSheet(button_style)
+shuffle_button.setStyleSheet(button_style)
 
 is_playing = False
 has_started = False
+shuffle_enabled = False
 
 def play_music():
     global is_playing, has_started
 
     if not has_started:
-        print(current_track)
         player.play(os.path.join(music_folder, current_track))
         progress_bar.setValue(0)
         player.pause = False
@@ -128,7 +171,10 @@ def play_music():
 def next_track():
     global current_track_index, current_track, is_playing, has_started
 
-    current_track_index = (current_track_index + 1) % len(music_files)
+    if shuffle_enabled:
+        current_track_index = random.randrange(len(music_files))
+    else:
+        current_track_index = (current_track_index + 1) % len(music_files)
     current_track = music_files[current_track_index]
 
     is_playing = False
@@ -155,11 +201,33 @@ def update_progress():
     if has_started and player.time_pos is not None:
         progress_bar.setValue(int(player.time_pos))
 
+def toggle_shuffle():
+    global shuffle_enabled
+
+    shuffle_enabled = not shuffle_enabled
+
+    if shuffle_enabled:
+        shuffle_button.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                font-size: 24px;
+                padding: 8px;
+                color: palette(highlight);
+            }
+        """)
+    else:
+        shuffle_button.setStyleSheet(button_style)
+
+
 
 play_button.clicked.connect(play_music)
 next_button.clicked.connect(next_track)
 prev_button.clicked.connect(previous_track)
+shuffle_button.clicked.connect(toggle_shuffle)
+
 progress_bar.sliderReleased.connect(lambda: seek_song(progress_bar.value()))
+
 timer = QTimer()
 timer.timeout.connect(update_progress)
 timer.start(1000)
