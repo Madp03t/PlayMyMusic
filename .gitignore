@@ -1,0 +1,5 @@
+venv/
+*.mp3
+*.png
+*.jpg
+__pycache__/
