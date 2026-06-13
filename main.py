@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSlider
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer 
 from PySide6.QtGui import QPixmap
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3, APIC
@@ -39,27 +39,9 @@ music_files = [
 
 music_files.sort()
 
-current_track = music_files[0]
+current_track_index = 0
+current_track = music_files[current_track_index]
 
-tags = ID3(os.path.join(music_folder, current_track))
-cover_data = None
-
-for tag in tags.values():
-    if isinstance(tag, APIC):
-        cover_data = tag.data
-        break
-
-pixmap = QPixmap()
-pixmap.loadFromData(cover_data)
-
-album_art.setPixmap(
-    pixmap.scaled(
-        350,
-        350,
-        Qt.KeepAspectRatio,
-        Qt.SmoothTransformation
-    )
-)
 
 album_art.setAlignment(Qt.AlignCenter)
 album_art.setFixedSize(350, 350)
@@ -69,16 +51,45 @@ album_art.setStyleSheet("""
     font-size: 24px;
 """)
 
-audio = EasyID3(os.path.join(music_folder, current_track))
+def load_track():
+    global artist, title
 
-artist = audio.get("artist", ["Unknown Artist"])[0]
-title = audio.get("title", ["Unknown Title"])[0]
+    track_path = os.path.join(music_folder, current_track)
+    audio = EasyID3(track_path)
 
-track_info = QLabel(f"{artist} - {title}")
+    artist = audio.get("artist", ["Unknown Artist"])[0]
+    title = audio.get("title", ["Unknown Title"])[0]
+    track_info.setText(f"{artist} - {title}")
+
+    tags = ID3(os.path.join(music_folder, current_track))
+    cover_data = None
+
+    for tag in tags.values():
+            if isinstance(tag, APIC):
+                cover_data = tag.data
+                break
+
+    pixmap = QPixmap()
+    pixmap.loadFromData(cover_data)
+
+    album_art.setPixmap(
+        pixmap.scaled(
+            350,
+            350,
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        )
+    )
+
+
+track_info = QLabel("Loading track...")
 track_info.setAlignment(Qt.AlignCenter)
+
+load_track()
 
 locale.setlocale(locale.LC_NUMERIC, "C")
 player = mpv.MPV()
+
 
 progress_bar = QSlider(Qt.Horizontal)
 progress_bar.setRange(0, 100)
@@ -98,6 +109,7 @@ def play_music():
     if not has_started:
         print(current_track)
         player.play(os.path.join(music_folder, current_track))
+        progress_bar.setValue(0)
         player.pause = False
         play_button.setText("⏸")
         is_playing = True
@@ -113,7 +125,44 @@ def play_music():
         play_button.setText("⏸")
         is_playing = True
 
+def next_track():
+    global current_track_index, current_track, is_playing, has_started
+
+    current_track_index = (current_track_index + 1) % len(music_files)
+    current_track = music_files[current_track_index]
+
+    is_playing = False
+    has_started = False
+    load_track()
+    play_music()
+
+def previous_track():
+    global current_track_index, current_track, is_playing, has_started
+
+    current_track_index = (current_track_index - 1) % len(music_files)
+    current_track = music_files[current_track_index]
+
+    is_playing = False
+    has_started = False
+    load_track()
+    play_music()
+
+def seek_song(value):
+    if has_started:
+        player.time_pos = value
+
+def update_progress():
+    if has_started and player.time_pos is not None:
+        progress_bar.setValue(int(player.time_pos))
+
+
 play_button.clicked.connect(play_music)
+next_button.clicked.connect(next_track)
+prev_button.clicked.connect(previous_track)
+progress_bar.sliderReleased.connect(lambda: seek_song(progress_bar.value()))
+timer = QTimer()
+timer.timeout.connect(update_progress)
+timer.start(1000)
 
 layout.addWidget(album_art, alignment=Qt.AlignCenter)
 layout.addWidget(track_info)
