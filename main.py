@@ -120,6 +120,16 @@ progress_bar.setStyleSheet("""
 progress_bar.setRange(0, 100)
 progress_bar.setValue(0)
 
+time_label = QLabel("0:00")
+duration_label = QLabel("0:00")
+time_layout = QHBoxLayout()
+time_layout.addWidget(time_label)
+time_layout.addStretch()
+time_layout.addWidget(duration_label)
+
+time_label.setStyleSheet("color: white; font-size: 18px;")
+duration_label.setStyleSheet("color: white; font-size: 18px;")
+
 prev_button = QPushButton("⏮")
 play_button = QPushButton("▶")
 next_button = QPushButton("⏭")
@@ -199,7 +209,13 @@ def seek_song(value):
 
 def update_progress():
     if has_started and player.time_pos is not None:
-        progress_bar.setValue(int(player.time_pos))
+        current_time = int(player.time_pos)
+        if not progress_bar.isSliderDown():
+            progress_bar.setValue(current_time)
+
+        minutes = current_time // 60
+        seconds = current_time % 60
+        time_label.setText(f"{minutes}:{seconds:02d}")
 
 def toggle_shuffle():
     global shuffle_enabled
@@ -235,6 +251,9 @@ timer.start(1000)
 layout.addWidget(album_art, alignment=Qt.AlignCenter)
 layout.addWidget(track_info)
 layout.addWidget(progress_bar)
+layout.addLayout(time_layout)
+time_layout.setContentsMargins(8, 0, 8, 12)
+
 
 controls = QHBoxLayout()
 controls.addWidget(prev_button)
