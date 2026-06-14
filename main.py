@@ -210,6 +210,14 @@ def seek_song(value):
 def update_progress():
     if has_started and player.time_pos is not None:
         current_time = int(player.time_pos)
+        duration = int(player.duration or 0)
+        progress_bar.setRange(0, duration)
+
+        duration_minutes = duration // 60
+        duration_seconds = duration % 60
+
+        duration_label.setText(f"{duration_minutes}:{duration_seconds:02d}")
+
         if not progress_bar.isSliderDown():
             progress_bar.setValue(current_time)
 
