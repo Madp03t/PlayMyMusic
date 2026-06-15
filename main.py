@@ -226,7 +226,11 @@ def update_progress():
         duration_minutes = duration // 60
         duration_seconds = duration % 60
 
-        duration_label.setText(f"{duration_minutes}:{duration_seconds:02d}")
+        remaining_time = max(duration - current_time, 0)
+        remaining_minutes = remaining_time // 60
+        remaining_seconds = remaining_time % 60
+
+        duration_label.setText(f"-{remaining_minutes}:{remaining_seconds:02d}")
 
         if not progress_bar.isSliderDown():
             progress_bar.setValue(current_time)
