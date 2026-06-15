@@ -225,6 +225,10 @@ def update_progress():
         seconds = current_time % 60
         time_label.setText(f"{minutes}:{seconds:02d}")
 
+        if has_started and player.time_pos is not None and player.duration is not None:
+            if player.time_pos >= player.duration - 2:
+                next_track()    
+
 def toggle_shuffle():
     global shuffle_enabled
 
