@@ -130,6 +130,16 @@ time_layout.addWidget(duration_label)
 time_label.setStyleSheet("color: white; font-size: 18px;")
 duration_label.setStyleSheet("color: white; font-size: 18px;")
 
+volume_label = QLabel("Volume")
+volume_label.setStyleSheet("color: white; font-size: 18px;")
+
+volume_slider = QSlider(Qt.Horizontal)
+volume_slider.setRange(0, 100)
+volume_slider.setValue(100)
+player.volume = 100
+volume_slider.valueChanged.connect(lambda value: setattr(player, "volume", value))
+volume_slider.setStyleSheet(progress_bar.styleSheet())
+
 prev_button = QPushButton("⏮")
 play_button = QPushButton("▶")
 next_button = QPushButton("⏭")
@@ -264,6 +274,8 @@ layout.addWidget(album_art, alignment=Qt.AlignCenter)
 layout.addWidget(track_info)
 layout.addWidget(progress_bar)
 layout.addLayout(time_layout)
+layout.addWidget(volume_label)
+layout.addWidget(volume_slider)
 time_layout.setContentsMargins(8, 0, 8, 12)
 
 
