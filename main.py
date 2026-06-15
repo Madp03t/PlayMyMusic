@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QSlider
 )
 from PySide6.QtCore import Qt, QTimer 
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPixmap, QShortcut, QKeySequence
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3, APIC
 
@@ -270,6 +270,15 @@ controls.addWidget(next_button)
 controls.addWidget(shuffle_button)
 
 layout.addLayout(controls)
+
+space_shortcut = QShortcut(QKeySequence("Space"), window)
+space_shortcut.activated.connect(play_music)
+
+next_shortcut = QShortcut(QKeySequence("Right"), window)
+next_shortcut.activated.connect(next_track)
+
+prev_shortcut = QShortcut(QKeySequence("Left"), window)
+prev_shortcut.activated.connect(previous_track)
 
 window.setLayout(layout)
 
