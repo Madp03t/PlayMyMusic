@@ -60,7 +60,8 @@ def load_track():
 
     artist = audio.get("artist", ["Unknown Artist"])[0]
     title = audio.get("title", ["Unknown Title"])[0]
-    track_info.setText(f"{artist} - {title}")
+    artist_label.setText(artist)
+    title_label.setText(title)
 
     tags = ID3(os.path.join(music_folder, current_track))
     cover_data = None
@@ -83,8 +84,13 @@ def load_track():
     )
 
 
-track_info = QLabel("Loading track...")
-track_info.setAlignment(Qt.AlignCenter)
+artist_label = QLabel("Loading artist...")
+artist_label.setAlignment(Qt.AlignCenter)
+artist_label.setStyleSheet("color: white; font-size: 20px; font-weight: bold;")
+
+title_label = QLabel("Loading song...")
+title_label.setAlignment(Qt.AlignCenter)
+title_label.setStyleSheet("color: white; font-size: 18px;")
 
 load_track()
 
@@ -275,7 +281,12 @@ timer.timeout.connect(update_progress)
 timer.start(1000)
 
 layout.addWidget(album_art, alignment=Qt.AlignCenter)
-layout.addWidget(track_info)
+meta_layout = QVBoxLayout()
+meta_layout.setSpacing(4)
+meta_layout.addWidget(artist_label)
+meta_layout.addWidget(title_label)
+
+layout.addLayout(meta_layout)
 layout.addWidget(progress_bar)
 layout.addLayout(time_layout)
 layout.addWidget(volume_label)
