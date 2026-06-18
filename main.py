@@ -13,13 +13,14 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSlider
 )
-from PySide6.QtCore import Qt, QTimer 
+from PySide6.QtCore import Qt, QTimer, QSettings 
 from PySide6.QtGui import QPixmap, QShortcut, QKeySequence
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3, APIC
 
 
 app = QApplication(sys.argv)
+settings = QSettings("Madp03t", "PMM")
 
 window = QWidget()
 window.setWindowTitle("PlayMyMusic")
@@ -141,9 +142,14 @@ volume_label.setStyleSheet("color: white; font-size: 18px;")
 
 volume_slider = QSlider(Qt.Horizontal)
 volume_slider.setRange(0, 100)
-volume_slider.setValue(100)
-player.volume = 100
-volume_slider.valueChanged.connect(lambda value: setattr(player, "volume", value))
+saved_volume = settings.value("volume", 100, int)
+volume_slider.setValue(saved_volume)
+player.volume = saved_volume
+def set_volume(value):
+    player.volume = value
+    settings.setValue("volume", value)
+
+volume_slider.valueChanged.connect(set_volume)
 volume_slider.setStyleSheet(progress_bar.styleSheet())
 
 prev_button = QPushButton("⏮")
@@ -274,7 +280,7 @@ next_button.clicked.connect(next_track)
 prev_button.clicked.connect(previous_track)
 shuffle_button.clicked.connect(toggle_shuffle)
 
-progress_bar.sliderReleased.connect(lambda: seek_song(progress_bar.value()))
+progress_bar.sliderMoved.connect(seek_song)
 
 timer = QTimer()
 timer.timeout.connect(update_progress)
