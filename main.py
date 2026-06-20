@@ -177,7 +177,7 @@ shuffle_button.setStyleSheet(button_style)
 
 is_playing = False
 has_started = False
-shuffle_enabled = False
+shuffle_enabled = settings.value("shuffle", False, type=bool)
 
 def play_music():
     global is_playing, has_started
@@ -259,6 +259,7 @@ def toggle_shuffle():
     global shuffle_enabled
 
     shuffle_enabled = not shuffle_enabled
+    settings.setValue("shuffle", shuffle_enabled)
 
     if shuffle_enabled:
         shuffle_button.setStyleSheet("""
@@ -273,7 +274,16 @@ def toggle_shuffle():
     else:
         shuffle_button.setStyleSheet(button_style)
 
-
+if shuffle_enabled:
+    shuffle_button.setStyleSheet("""
+        QPushButton {
+            background-color: transparent;
+            border: none;
+            font-size: 24px;
+            padding: 8px;
+            color: palette(highlight);
+        }
+    """)
 
 play_button.clicked.connect(play_music)
 next_button.clicked.connect(next_track)
