@@ -11,7 +11,8 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QHBoxLayout,
-    QSlider
+    QSlider,
+    QFileDialog
 )
 from PySide6.QtCore import Qt, QTimer, QSettings 
 from PySide6.QtGui import QPixmap, QShortcut, QKeySequence
@@ -24,7 +25,12 @@ settings = QSettings("Madp03t", "PMM")
 
 window = QWidget()
 window.setWindowTitle("PlayMyMusic")
-window.resize(700, 700)
+geometry = settings.value("window_geometry")
+
+if geometry:
+    window.restoreGeometry(geometry)
+else:
+    window.resize(700, 700)
 
 layout = QVBoxLayout()
 layout.setAlignment(Qt.AlignCenter)
@@ -32,7 +38,11 @@ layout.setSpacing(30)
 
 album_art = QLabel()
 
-music_folder = os.path.expanduser("~/Music")
+music_folder = settings.value(
+    "music_folder",
+    os.path.expanduser("~/Music"),
+    str
+)
 
 music_files = [
     file for file in os.listdir(music_folder)
@@ -156,6 +166,7 @@ prev_button = QPushButton("⏮")
 play_button = QPushButton("▶")
 next_button = QPushButton("⏭")
 shuffle_button = QPushButton("⤮")
+folder_button = QPushButton("📁")
 
 button_style = """
     QPushButton {
@@ -174,10 +185,52 @@ prev_button.setStyleSheet(button_style)
 play_button.setStyleSheet(button_style)
 next_button.setStyleSheet(button_style)
 shuffle_button.setStyleSheet(button_style)
+folder_button.setStyleSheet(button_style)
 
 is_playing = False
 has_started = False
 shuffle_enabled = settings.value("shuffle", False, type=bool)
+
+def choose_music_folder():
+    global music_folder
+
+    folder = QFileDialog.getExistingDirectory(
+        window,
+        "Choose Music Folder",
+        music_folder
+    )
+
+    if folder:
+        music_folder = folder
+        settings.setValue("music_folder", folder)
+        reload_music_folder()
+
+def reload_music_folder():
+    global music_files, current_track_index, current_track
+
+    music_files = [
+        file for file in os.listdir(music_folder)
+        if file.endswith(".mp3")
+    ]
+
+    music_files.sort()
+
+    if music_files:
+        current_track_index = 0
+        current_track = music_files[current_track_index]
+
+        player.stop()
+        progress_bar.setValue(0)
+        time_label.setText("0:00")
+        duration_label.setText("0:00")
+        play_button.setText("▶")
+
+        global is_playing, has_started
+        is_playing = False
+        has_started = False
+
+        load_track()
+
 
 def play_music():
     global is_playing, has_started
@@ -285,10 +338,14 @@ if shuffle_enabled:
         }
     """)
 
+def save_settings():
+    settings.setValue("window_geometry", window.saveGeometry())
+
 play_button.clicked.connect(play_music)
 next_button.clicked.connect(next_track)
 prev_button.clicked.connect(previous_track)
 shuffle_button.clicked.connect(toggle_shuffle)
+folder_button.clicked.connect(choose_music_folder)
 
 progress_bar.sliderMoved.connect(seek_song)
 
@@ -315,6 +372,7 @@ controls.addWidget(prev_button)
 controls.addWidget(play_button)
 controls.addWidget(next_button)
 controls.addWidget(shuffle_button)
+controls.addWidget(folder_button)
 
 layout.addLayout(controls)
 
@@ -330,5 +388,7 @@ prev_shortcut.activated.connect(previous_track)
 window.setLayout(layout)
 
 window.show()
+
+app.aboutToQuit.connect(save_settings)
 
 sys.exit(app.exec())
