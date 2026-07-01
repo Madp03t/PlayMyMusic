@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QFileDialog
 )
 from PySide6.QtCore import Qt, QTimer, QSettings 
-from PySide6.QtGui import QPixmap, QShortcut, QKeySequence
+from PySide6.QtGui import QPixmap, QShortcut, QKeySequence, QIcon
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3, APIC
 
@@ -25,6 +25,8 @@ settings = QSettings("Madp03t", "PMM")
 
 window = QWidget()
 window.setWindowTitle("PlayMyMusic")
+window.setWindowIcon(QIcon("icons/PMM_512.png"))
+
 geometry = settings.value("window_geometry")
 
 if geometry:
