@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QSlider,
     QFileDialog
 )
-from PySide6.QtCore import Qt, QTimer, QSettings 
+from PySide6.QtCore import Qt, QTimer, QSettings, QObject, Signal 
 from PySide6.QtGui import QPixmap, QShortcut, QKeySequence, QIcon
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3, APIC
@@ -46,15 +46,18 @@ music_folder = settings.value(
     str
 )
 
-music_files = [
-    file for file in os.listdir(music_folder)
-    if file.endswith(".mp3")
-]
+if os.path.isdir(music_folder):
+    music_files = [
+        file for file in os.listdir(music_folder)
+        if file.endswith(".mp3")
+    ]
+else:
+    music_files = []
 
 music_files.sort()
 
 current_track_index = 0
-current_track = music_files[current_track_index]
+current_track = music_files[current_track_index] if music_files else None
 
 
 album_art.setAlignment(Qt.AlignCenter)
@@ -67,6 +70,12 @@ album_art.setStyleSheet("""
 
 def load_track():
     global artist, title
+
+    if current_track is None:
+        artist_label.setText("No music found")
+        title_label.setText("Choose a folder with MP3 files")
+        album_art.clear()
+        return
 
     track_path = os.path.join(music_folder, current_track)
     audio = EasyID3(track_path)
@@ -109,6 +118,15 @@ load_track()
 
 locale.setlocale(locale.LC_NUMERIC, "C")
 player = mpv.MPV()
+class MpvSignals(QObject):
+    track_finished = Signal()
+
+mpv_signals = MpvSignals()
+
+@player.event_callback("end-file")
+def on_end_file(event):
+    if event.data.reason == 0:
+        mpv_signals.track_finished.emit()
 
 
 progress_bar = QSlider(Qt.Horizontal)
@@ -192,6 +210,7 @@ folder_button.setStyleSheet(button_style)
 is_playing = False
 has_started = False
 shuffle_enabled = settings.value("shuffle", False, type=bool)
+shuffle_bag = []
 
 def choose_music_folder():
     global music_folder
@@ -209,33 +228,48 @@ def choose_music_folder():
 
 def reload_music_folder():
     global music_files, current_track_index, current_track
+    global is_playing, has_started
 
-    music_files = [
-        file for file in os.listdir(music_folder)
-        if file.endswith(".mp3")
-    ]
+    if os.path.isdir(music_folder):
+        music_files = [
+            file for file in os.listdir(music_folder)
+            if file.endswith(".mp3")
+        ]
+        music_files.sort()
+    else:
+        music_files = []
 
-    music_files.sort()
+    player.stop()
+    progress_bar.setValue(0)
+    time_label.setText("0:00")
+    duration_label.setText("0:00")
+    play_button.setText("▶")
+
+    is_playing = False
+    has_started = False
 
     if music_files:
         current_track_index = 0
         current_track = music_files[current_track_index]
+    else:
+        current_track = None
 
-        player.stop()
-        progress_bar.setValue(0)
-        time_label.setText("0:00")
-        duration_label.setText("0:00")
-        play_button.setText("▶")
+    load_track()
 
-        global is_playing, has_started
-        is_playing = False
-        has_started = False
+def refill_shuffle_bag():
+    global shuffle_bag
 
-        load_track()
+    shuffle_bag = list(range(len(music_files)))
+    random.shuffle(shuffle_bag)
+
+    if current_track_index in shuffle_bag:
+        shuffle_bag.remove(current_track_index)
 
 
 def play_music():
     global is_playing, has_started
+
+    player.mute = False
 
     if not has_started:
         player.play(os.path.join(music_folder, current_track))
@@ -259,15 +293,22 @@ def next_track():
     global current_track_index, current_track, is_playing, has_started
 
     if shuffle_enabled:
-        current_track_index = random.randrange(len(music_files))
+        if not shuffle_bag:
+            refill_shuffle_bag()
+
+        current_track_index = shuffle_bag.pop()
+    
     else:
         current_track_index = (current_track_index + 1) % len(music_files)
+
     current_track = music_files[current_track_index]
 
     is_playing = False
     has_started = False
     load_track()
     play_music()
+
+mpv_signals.track_finished.connect(next_track)
 
 def previous_track():
     global current_track_index, current_track, is_playing, has_started
@@ -306,9 +347,6 @@ def update_progress():
         seconds = current_time % 60
         time_label.setText(f"{minutes}:{seconds:02d}")
 
-        if has_started and player.time_pos is not None and player.duration is not None:
-            if player.time_pos >= player.duration - 2:
-                next_track()    
 
 def toggle_shuffle():
     global shuffle_enabled
