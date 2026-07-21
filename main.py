@@ -117,7 +117,7 @@ title_label.setStyleSheet("color: white; font-size: 18px;")
 load_track()
 
 locale.setlocale(locale.LC_NUMERIC, "C")
-player = mpv.MPV()
+player = mpv.MPV(audio_display="no")
 class MpvSignals(QObject):
     track_finished = Signal()
 
@@ -173,6 +173,7 @@ volume_label.setStyleSheet("color: white; font-size: 18px;")
 volume_slider = QSlider(Qt.Horizontal)
 volume_slider.setRange(0, 100)
 saved_volume = settings.value("volume", 100, int)
+print(f"Saved volume = {saved_volume}")
 volume_slider.setValue(saved_volume)
 player.volume = saved_volume
 def set_volume(value):
@@ -270,9 +271,10 @@ def play_music():
     global is_playing, has_started
 
     player.mute = False
+    player.volume = volume_slider.value()
 
     if not has_started:
-        player.play(os.path.join(music_folder, current_track))
+        player.command("loadfile", os.path.join(music_folder, current_track), "replace")
         progress_bar.setValue(0)
         player.pause = False
         play_button.setText("⏸")
